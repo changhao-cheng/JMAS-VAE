@@ -7,7 +7,6 @@ JMAS-VAE is a lightweight release of a 16 kHz speech VAE based on the Stable Aud
 
 For inference, both models use the same lightweight configuration because the SSL/WavLM module is only used as a training loss and is not needed for latent extraction or waveform reconstruction.
 
-> Paper: [![arXiv](https://img.shields.io/badge/arXiv-2604.12383-b31b1b.svg?style=flat-square&logo=arxiv)](https://arxiv.org/abs/2604.12383)
 > Pretrained models: [![Hugging Face](https://img.shields.io/badge/HuggingFace-ch--cheng%2FJMAS--VAE-ffd21e.svg?style=flat-square&logo=huggingface)](https://huggingface.co/ch-cheng/JMAS-VAE)
 
 ## Repository Layout
@@ -35,7 +34,7 @@ If you prefer to control the PyTorch build manually, install `torch` and `torcha
 
 ## Training
 
-The default training setup is documented with LibriLight-style local audio directories. Edit `configs/local_dataset.json` and point `path` to your local LibriLight audio directory:
+The default training setup is documented with LibriLight-style local audio directories. Edit `configs/local_dataset.json` and point `path` to your local LibriHeavy audio directory:
 
 ```json
 {
@@ -43,7 +42,7 @@ The default training setup is documented with LibriLight-style local audio direc
     "datasets": [
         {
             "id": "train",
-            "path": "/path/to/librilight/audio_dir"
+            "path": "/path/to/libriheavy/audio_dir"
         }
     ]
 }
@@ -109,6 +108,8 @@ python vae_recon.py \
 
 `--audios` accepts audio files, audio directories, or Kaldi-style `wav.scp` files. Directory inputs are scanned recursively for `wav/flac/mp3/ogg/m4a/aac` by default. Use `--audio_format wav,flac,mp3` to restrict the accepted formats.
 
+By default the extracted latent is sampled from the VAE posterior (`mean + std * noise`). Adding `--use_mean` extracts the posterior mean instead, which is deterministic and reproducible; the flag is off by default and does not affect training.
+
 ## Reconstruction
 
 ```bash
@@ -123,6 +124,8 @@ python vae_recon.py \
 ```
 
 `--output_format` can be set to formats writable by the local `soundfile` installation, such as `wav`, `flac`, or `mp3`. MP3 output requires a `libsndfile/soundfile` build with MP3 encoding support.
+
+All audio is resampled to 16 kHz before encoding, so the latent files store the valid length in the 16 kHz domain (`original_length`), together with `source_sr` / `source_length` for reference. The decoder output is slightly longer than the input (it is a multiple of the downsampling ratio plus a fixed convolution padding), so `--mode decode` aligns the waveform back to the stored length instead of requiring an exact match: longer output is truncated, shorter output is zero-padded at the end. Latent files produced by older versions of `vae_recon.py` only contain a length measured at the source sample rate; they still decode, but the output length is only approximate, and a warning is printed once. Re-run `--mode encode` to get exact lengths.
 
 ## Citation
 If you find this work useful, please cite our paper:
